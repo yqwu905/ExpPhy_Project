@@ -15,7 +15,7 @@ class ContentLoss(torch.nn.Module):
         torch.nn.Module.__init__(self)
 
         self._weight = weight
-        self._target = target
+        self._target = target.detach()*self._weight
         self.loss_fn = torch.nn.MSELoss()
 
     def forward(self, input):
@@ -27,7 +27,7 @@ class ContentLoss(torch.nn.Module):
         """
         self.loss = self.loss_fn(input*self._weight, self._target)
         self.output = input
-        return self.input
+        return self.output
 
     def backward(self):
         """Backward method for Content Loss Layer

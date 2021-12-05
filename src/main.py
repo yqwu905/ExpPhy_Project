@@ -3,14 +3,14 @@ import torchvision
 from torchvision import models
 import copy
 from network.loss import StyleLoss, GramMetrix, ContentLoss
-from utils.image import load_img, save_img
+from utils.image import load_img, save_img, show_img
 from torch.autograd import Variable
 
-
+content_idx, style_idx = 2,6
 # Load image
-content_img = load_img('img/src/1.png')
+content_img = load_img(f"img/src/{content_idx}.png")
 content_img = Variable(content_img).cuda()
-style_img = load_img('img/style/1.png')
+style_img = load_img(f"img/style/{style_idx}.png")
 style_img = Variable(style_img).cuda()
 
 # Load vgg16
@@ -23,7 +23,7 @@ print(cnn)
 # Modify vgg16
 
 content_layer = ["Conv_5", "Conv_6"]
-style_layer = ["Conv_1", "Conv_2", "Conv_3", "Conv_", "Conv_5"]
+style_layer = ["Conv_1", "Conv_2", "Conv_3", "Conv_4", "Conv_5"]
 content_losses = []
 style_losses = []
 content_weight = 1
@@ -40,9 +40,10 @@ for layer in list(model):
         name = "Conv_" + str(index)
         new_model.add_module(name, layer)
         if name in content_layer:
-            target = new_model(style_img).clone()
+            target = new_model(content_img).clone()
             content_loss = ContentLoss(content_weight, target)
             new_model.add_module(f"content_loss_{index}", content_loss)
+            content_losses.append(content_loss)
 
         if name in style_layer:
             target = new_model(style_img).clone()
@@ -92,10 +93,11 @@ while run[0] <= n_epoch:
         run[0] += 1
         if run[0] % 50 == 0:
             print(f"{run[0]} Style Loss : {style_score}, {content_score}")
-
+            parameter.data.clamp_(0,1)
+            show_img(parameter.data, f"Iter {run[0]}")
         return style_score + content_score
     
     optimizer.step(closure)
 
 parameter.data.clamp_(0,1)
-save_img(parameter.data, "1-1.png")
+save_img(parameter.data, f"{content_idx}-{style_idx}.png")
