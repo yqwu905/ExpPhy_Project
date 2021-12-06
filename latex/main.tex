@@ -1,0 +1,85 @@
+\documentclass{article}
+\usepackage[dvipsnames, svgnames, x11names]{xcolor}
+\usepackage{ctex}
+\usepackage{cite}
+\usepackage{siunitx}
+\usepackage{enumerate}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{physics}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[most]{tcolorbox}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{amssymb}
+
+\begin{document}
+\begin{titlepage}
+  %\clearpage
+  \thispagestyle{empty}
+  \centering
+  \vspace{1cm}
+
+  % Titles
+  % Information about the University
+  {\
+	  \textsc{武汉大学 2021-2022学年 综合物理实验5}
+  }
+  \vspace{1.5 cm}
+
+  \rule{\linewidth}{2mm} \\[0.8cm]
+  { \LARGE \sc 基于神经网络的风格迁移}\\[0.55cm]
+  \rule{\linewidth}{0.6mm} \\[2.4cm]
+
+  \hspace{1cm}
+  \begin{tabular}{l p{6cm}}
+          \textbf{Name} & \textbf{吴远清}\\[10pt]
+          \textbf{Department} & 弘毅学堂 \\[10pt]
+          \textbf{Date} & \today \\
+  \end{tabular}
+
+  %\vfill
+  \vspace{2cm}
+  % Light logo and Dark logo
+\begin{center}
+\includegraphics[width=4.5cm]{image/school_tag.png}
+\end{center}
+  \begin{center}
+\includegraphics[width=4.5cm]{image/school_name.jpg}
+\end{center}
+  \vspace{0.5cm}
+  %\pagebreak
+  \global\let\newpagegood\newpage
+\global\let\newpage\relax
+\end{titlepage}
+\global\let\newpage\newpagegood
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% Text body starts here!
+%\clearpage
+%\mainmatter
+\setcounter{page}{1}
+
+    % \maketitle
+    % \centerline{\includegraphics[width=4.5cm]{image/school_tag.png}}
+    \clearpage
+    \tableofcontents
+    \clearpage
+	\section{简介}
+	图像风格迁移是指对于两张给定的图片:
+	一张内容图片(c)和一张风格图片(s),
+	我们训练一个神经网络将c以s的'风格'重绘.\\
+	目前有多种图像风格迁移的实现方式,
+	例如可以通过基于生成对抗网络(Generative Adversarial Net, GAN)来实现,
+	也可以通过传统的卷积神经网络(Convolutional Neural Network, CNN),
+	最近的研究成果也有利用较新的Transformer模型来实现图像风格迁移的.\\
+	在本实验报告中, 我将介绍基于CNN实现图像风格迁移的理论和技术细节,
+	并给出一个基于PyTorch的实现, 展示一些在不同的内容图片与风格图片之间得到的结果,
+	最后讨论一下模型中的参数设置与存在的一些问题, 并进行总结.
+
+	\section{理论}
+
+	\bibliographystyle{unsrt}
+	\bibliography{reference}
+\end{document}

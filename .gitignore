@@ -59,3 +59,9 @@ docs/_build/
 target/
 
 src/img/output/*
+
+# Latex
+latex/*
+!latex/main.tex
+!latex/image
+!latex/reference.bib
