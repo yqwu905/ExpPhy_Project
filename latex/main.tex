@@ -9,12 +9,17 @@
 \usepackage{physics}
 \usepackage{graphicx}
 \usepackage{listings}
-\usepackage{hyperref}
+\usepackage[colorlinks, linkcolor=blue]{hyperref}
+\usepackage{fancyhdr}
 \usepackage[most]{tcolorbox}
 \usepackage{subfigure}
 \usepackage{float}
 \usepackage{amssymb}
 
+\pagestyle{fancy}
+\fancyhf{} 
+\lhead{吴远清 2018300001031}
+\rhead{基于神经网络的图像风格迁移实验报告}
 \numberwithin{equation}{subsection}
 
 \lstset{
@@ -60,7 +65,7 @@
 	\vspace{1.5 cm}
 
 	\rule{\linewidth}{2mm} \\[0.8cm]
-	{ \LARGE \sc 基于神经网络的风格迁移}\\[0.55cm]
+	{ \LARGE \sc 基于神经网络的图像风格迁移实验报告}\\[0.55cm]
 	\rule{\linewidth}{0.6mm} \\[2.4cm]
 
 	\hspace{1cm}
@@ -114,19 +119,38 @@
 之后生成一个随机噪声图片x, 分别计算其内容特征图和风格特征图, 计算出x的特征图与c和s的特征图的损失函数, 并调整图像x, 使得x的风格特征图接近于s, 而x
 的内容特征图接近于c.\\
 \subsection{网络结构}
-在Gatys等人的论文中, 他们使用了vgg19作为基本框架, 但对于PyTorch来说, vgg19的实现不够稳定, 因此我们使用vgg16来作为基本网络结构.\\
+在Gatys等人的论文中, 他们使用了vgg19作为基本框架, 但对于PyTorch来说, vgg19的实现不够稳定,
+因此我们使用vgg16来作为基本网络结构, 结构示意图见图\ref{fig:vgg16}\\
+在VGG16中, 我们通过卷积层来提取图像的特征图, 并使用Max Pooling池化层来对特征图进行降维.
+由于我们是基于特征图来计算损失函数, 因此我们在卷积层与ReLU激活函数层间插入相应的损失函数层.\\
+\begin{figure}[htpb]
+	\centering
+	\includegraphics[width=0.8\linewidth]{image/VGG16.pdf}
+	\caption{VGG16网络结构}%
+	\label{fig:vgg16}
+\end{figure}
 我们通过PyTorch导入预训练好的vgg16模型, 并在前五个卷积层后加入风格损失层,
-在第五和第六个卷积层后加入内容损失层.(损失函数层的具体实现见\ref{sec:Loss_Function})\\
+在第五和第六个卷积层后加入内容损失层, 结构示意图见图\ref{fig:image/vgg16_modified}, 代码实现及训练见附录代码\ref{NetworkClass}.(损失函数层的具体实现见\ref{sec:Loss_Function})\\
+\begin{figure}[htpb]
+	\centering
+	\includegraphics[width=0.8\linewidth]{image/VGG16-Modified.pdf}
+	\caption{风格迁移网络结构}%
+	\label{fig:image/vgg16_modified}
+\end{figure}
 \subsection{损失函数}\label{sec:Loss_Function}
+本神经网络的损失函数定义为内容损失函数和风格损失函数的加权和:
+\begin{equation}
+	{\bf L} = w_{content}{\bf L}_{content} + w_{style} {\bf L}_{style}\label{eq:loss_function}
+\end{equation}
 \subsubsection{内容损失函数}
 内容损失函数定义为随机噪声图像x和内容图像在内容特征上的欧氏距离:
 \begin{equation}
-	L_{content}({\bf p}, {\bf x}, l) = \frac{1}{2} \sum_{i,j}\left(F^{l}_{i,j}-P^{l}_{i,j}\right)^{2}
+	{\bf L}_{content}({\bf p}, {\bf x}, l) = \frac{1}{2} \sum_{i,j}\left(F^{l}_{i,j}-P^{l}_{i,j}\right)^{2}
 \end{equation}
 其中, $l$ 表示第$l$ 个网络层, $P^{l}_{ij}$表示内容图片$p$ 在第$l$ 个网络层中第$i$ 个特征图上位置$j$ 处的特征值, $F^{l}_{ij}$ 表示生成图片$x$ 在第$l$ 个网络层中第$i$ 个特征图上位置$j$ 处的特征值.\\
 对于反向传播过程, 内容损失函数对$F^{l}_{ij}$的偏导为:
 \begin{equation}
-	\frac{\partial L_{content}}{\partial F^{l}_{ij}} =
+	\frac{\partial {\bf L}_{content}}{\partial F^{l}_{ij}} =
 	\left\{
 	\begin{aligned}
 		 & (F^{l}-P^{l})_{ij}\quad & F^{l}_{ij}>0     \\
@@ -162,9 +186,192 @@
 	\right.
 \end{equation}
 计算Gram矩阵,也就是图像风格特征的Python实现见\ref{code:gram_matrix_class}, 而风格损失函数的Python实现参见附录代码\ref{code:style_loss_class}.
+\subsection{权重参数}
+由损失函数的定义式\ref{eq:loss_function}, 我们注意到这一模型中存在两个超参数: {\bf 内容权重}与{\bf 风格权重}, 真正有意义的参数是二者的比值:
+\[
+\eta = \frac{w_{content}}{w_{style}}
+.\] 
+当$\eta \to \infty$ 时, 模型将生成与内容图像一模一样的图像. 一般来说, $\eta$ 越大, 生成的图像内容上越准确, 而$\eta$越小, 生成的图像风格上越准确. 
+
+\begin{figure}[H]
+	\begin{minipage}{0.48\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-1.png}}
+		\centerline{内容图像}
+	\end{minipage}
+	\begin{minipage}{0.48\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-1.png}}
+		\centerline{风格图像}
+	\end{minipage}
+	\caption{内容图像与风格图像}
+	\label{fig:content_1_style_1}
+\end{figure}
+
+例如, 我们取如图\ref{fig:content_1_style_1}的内容图像与风格图像, 分别取$\eta=0.01, 0.001, 0$的情况,
+生成的图像如图\ref{fig:eta}所示. 可以看出, 当 $\eta$较大的情况下, 生成图像非常接近与原始的内容图像;
+当 $\eta$取一个适中的值, 生成图像既保持了内容图像的细节, 同时较好的转移了风格图像的风格;
+当 $\eta$取的很小时, 可以看出生成图像相对于内容图像部分细节已经失真, 同时直接表现处部分风格图像的细节
+(例如右图中出现了梵高星空中的漩涡).
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/eta-0.01.png}}
+		\centerline{$\eta = 0.01$}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/eta-0.001.png}}
+		\centerline{$\eta = 0.001$}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/eta-0.png}}
+		\centerline{$\eta = 0$}
+	\end{minipage}
+	\caption{$\eta$值对生成图片的影响}
+	\label{fig:eta}
+\end{figure}
+
+\section{实验结果}
+我们采取共选用了3张内容图片(一张宠物,一张建筑和一张风景)和两张风格图片(一张冷色调和一张暖色调)进行实验,
+参数设置为$w_{content}=1, w_{style}=1000$, 训练步数均为1000次, 结果展示如下:
+ \begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-1.png}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-1.png}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/1-1.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_1_1}
+	\caption{风格迁移1-1}
+\end{figure}
+
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-1.png}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-2.pdf}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/1-2.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_1_2}
+	\caption{风格迁移1-2}
+\end{figure}
+
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-2.png}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-1.png}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/2-1.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_2_1}
+	\caption{风格迁移2-1}
+\end{figure}
+
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-2.png}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-2.pdf}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/2-2.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_2_2}
+	\caption{风格迁移2-2}
+\end{figure}
+
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-3.pdf}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-1.png}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/3-1.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_3_1}
+	\caption{风格迁移3-1}
+\end{figure}
+
+\begin{figure}[H]
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/content-3.pdf}}
+		\centerline{内容图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/style-2.pdf}}
+		\centerline{风格图片}
+	\end{minipage}
+	\begin{minipage}{0.32\linewidth}
+		\vspace{3pt}
+		\centerline{\includegraphics[width=\textwidth]{image/3-2.png}}
+		\centerline{生成图片}
+	\end{minipage}
+	\label{fig:show_3_2}
+	\caption{风格迁移3-2}
+\end{figure}
+
+可以看出, 对于大部分情况, 图片风格迁移都能获得不错的效果, 但对于风景照片(图\ref{fig:show_3_1}, 图\ref{fig:show_3_2}),
+树林部分细节较多, 此时风格迁移算法不能很好多重绘相应的细节, 导致树林部分较为模糊.
+
+\section{总结}
+我们基于VGG16网络的基础上, 实现并添加了内容损失函数层和风格损失函数层, 实现了图片读写,缩放与中途显示的功能,
+并利用PyTorch构建并训练了一个可以实现图像风格迁移的神经网络, 并在多组图片上进行测试, 得到了不错的结果.
 
 \appendix
-\section{Appendix}
+\section{附录}
+本章包含一些实验报告中提及的关键代码, 完整的代码请参见随实验报告的代码压缩包文件.
+
+\lstinputlisting[
+	style = Python,
+	caption = {\bf 神经网络结构},
+	label = {NetworkClass}
+]{../src/network/network.py}
 
 \begin{lstlisting}[style=Python, caption={\bf ContentLoss类}, label={code:content_loss_class}]
 class ContentLoss(torch.nn.Module):
@@ -247,6 +454,4 @@ class StyleLoss(torch.nn.Module):
         return self.loss
 \end{lstlisting}
 
-\bibliographystyle{unsrt}
-\bibliography{reference}
 \end{document}

@@ -12,8 +12,8 @@ def main(content_idx: int, style_idx: int):
     content_img = Variable(load_img(f"img/src/{content_idx}.png")).cuda()
     style_img = Variable(load_img(f"img/style/{style_idx}.png")).cuda()
     n = Network(content_img, style_img, 1, 1000)
-    n.migrate()
+    n.migrate(max_epoch=1000)
 
 
 if __name__ == "__main__":
-    main(1, 5)
+    main(3, 1)
